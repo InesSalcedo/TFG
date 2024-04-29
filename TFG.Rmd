@@ -1,0 +1,786 @@
+---
+title: "TFG"
+author: "Inés Salcedo"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=10, fig.height=6, fig.align='center')
+```
+###```{r include=FALSE}
+install.packages("readxl")
+install.packages("plotly")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("broom")
+install.packages("raster")
+###```
+
+```{r include=FALSE}
+library(readxl)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(broom)
+library(raster)
+library(scales)
+```
+
+
+```{r}
+residuos.madrid<- read_excel("C:/Users/isalc/OneDrive - Fundación Universitaria San Pablo CEU/Documentos/TFG/Modelo_residuos_2017-2023_recogida.xlsx")
+
+residuos.comunidadesautonomas<- read.csv("C:/Users/isalc/OneDrive - Fundación Universitaria San Pablo CEU/Documentos/TFG/Cantidad de residuos urbanos recogidos clasificados por tipo de residuo, periodo y comunidades autónomas.csv", sep = ";")
+```
+
+```{r}
+head(residuos.madrid)
+```
+
+```{r}
+head(residuos.comunidadesautonomas)
+```
+
+
+
+
+
+
+###```{r}
+#heatmap: Muestra la cantidad de residuos por tipo de residuo "TOTAL RESIDUOS" para el año 2010
+#usar la base de datos residuos.comunidadesautonomas
+#no usar la comunidad autónoma "Total Nacional"
+#usar el color de relleno para diferenciar las comunidades autónomas
+#usar el título "Cantidad de residuos por total de residuos en España por comunidad autónoma en 2010"
+#usar la leyenda abajo en pequeño
+
+
+
+
+
+shapefile_ccaa <- shapefile("C:/Users/isalc/OneDrive - Fundación Universitaria San Pablo CEU/Documentos/TFG/ComunidadesAutonomas_ETRS89_30N/Comunidades_Autonomas_ETRS89_30N.shp")
+data_ccaa <- tidy(shapefile_ccaa)
+nombres_ccaa <- tibble(shapefile_ccaa$Texto) %>% 
+  mutate(id = as.character(seq(0, nrow(.)-1)))
+
+data_ccaa_mapa <- data_ccaa %>% 
+  left_join(nombres_ccaa, by = "id") %>% 
+  rename(ccaa = `shapefile_ccaa$Texto`)
+#añadir el mapa de las comunidades autónomas de España
+data_ccaa_mapa %>%
+  ggplot() +
+  geom_polygon(aes( x= long, y = lat, group = group),
+               fill = "black", alpha = 0.8, size = 0.05 ) +
+  theme_void() +
+  theme(panel.background = element_rect(size= 0.5, color = "white", fill = "white")) +
+  labs(title = "CCAA", subtitle = "España") 
+
+
+
+###```
+
+
+###```{r}
+#https://rpubs.com/albtorval/595824
+
+shapefile_ccaa <- shapefile("C:/Users/isalc/OneDrive - Fundación Universitaria San Pablo CEU/Documentos/TFG/ComunidadesAutonomas_ETRS89_30N/Comunidades_Autonomas_ETRS89_30N.shp")
+data_ccaa <- tidy(shapefile_ccaa)
+nombres_ccaa <- tibble(shapefile_ccaa$Texto) %>% 
+  mutate(id = as.character(seq(0, nrow(.)-1)))
+
+data_ccaa_mapa <- data_ccaa %>% 
+  left_join(nombres_ccaa, by = "id") %>% 
+  rename(ccaa = `shapefile_ccaa$Texto`)
+
+data_ccaa_mapa %>%
+  ggplot() +
+  geom_polygon(aes( x= long, y = lat, group = group),
+               fill = "black", alpha = 0.8, size = 0.05 ) +
+  theme_void() +
+  theme(panel.background = element_rect(size= 0.5, color = "white", fill = "white")) +
+  labs(title = "CCAA", subtitle = "España") 
+###```
+
+
+
+```{r}
+#grafico para ver como han cambiado los residuos por tipo en el tiempo
+#usar la base de datos residuos.comunidadesautonomas
+#usar la suma de todos los tipos de residuo por año
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar el título "Evolución de la cantidad de residuos en España por tipo de residuo"
+#usar la leyenda abajo en pequeño
+#excluir el tipo de residuo que tenga mucho contraste con los demás
+
+lineas.residuos.tipo<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & !residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, color=Tipo.de.residuo)) + geom_line() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Evolución de la cantidad de residuos en España por tipo de residuo", x="Año", y="Toneladas")
+ggplotly(lineas.residuos.tipo)
+```
+Este capítulo se centra en un análisis descriptivo de la generación de residuos en España. Para ello, se utiliza la base de datos "Cantidad de residuos urbanos recogidos clasificados por tipo de residuo, periodo y comunidades autónomas" que contiene información sobre la cantidad de residuos generados en España por tipo de residuo y por comunidad autónoma. La base de datos tiene información desde el año 2010 hasta el año 2021. En este análisis, se utiliza la información de los años 2010 a 2021 para ver cómo ha evolucionado la cantidad de residuos en España por tipo de residuo y por comunidad autónoma. A través de varios gráficos, se visualiza esta información y se identifican algunas tendencias y patrones en la generación de residuos en España.
+
+En el gráfico anterior llamado "Evolución de la cantidad de residuos en España por tipo de residuo", se muestra cómo ha cambiado la cantidad de residuos en España por tipo de residuo en el tiempo. En este gráfico, se puede observar que la cantidad de residuos ha aumentado en general a lo largo de los años, con algunos tipos de residuos que han experimentado un aumento más pronunciado que otros. Por ejemplo, los residuos domésticos y similares han experimentado un aumento constante a lo largo de los años, mientras que los residuos de construcción y demolición han experimentado un aumento más moderado. Este gráfico proporciona una visión general de cómo ha evolucionado la cantidad de residuos en España por tipo de residuo y puede ser útil para identificar tendencias y patrones en la generación de residuos en el país. 
+
+ 
+
+
+#mismo gráfico pero sin el outlier de "10.1.1 Residuos domésticos y similares (domésticos y vías públicas)"
+```{r}
+lineas.residuos.tipo<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & !residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, color=Tipo.de.residuo)) + geom_line() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Evolución de la cantidad de residuos en España por tipo de residuo", x="Año", y="Toneladas")
+ggplotly(lineas.residuos.tipo)
+
+```
+
+```{r}
+#grafico de area para ver la proporción de cada tipo de residuo por año
+#usar la base de datos residuos.comunidadesautonomas
+#usar la suma de todos los tipos de residuo por año
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar el título "Proporción de cada tipo de residuo por año"
+#usar la leyenda abajo en pequeño
+
+area.residuos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & !residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_area() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Proporción de cada tipo de residuo por año", x="Año", y="Toneladas")
+ggplotly(area.residuos)
+```
+
+#Evolución de la cantidad de residuos en España por tipo de residuo y comunidad autónoma
+```{r}
+#grafico para ver como han cambiado las comunidades autónomas en el tiempo
+#usar la base de datos residuos.comunidadesautonomas
+#usar tipo de residuo = "TOTAL RESIDUOS"
+#usar el color de relleno para diferenciar las comunidades autónomas
+#usar el título "Evolución de la cantidad de residuos en España por tipo de residuo y comunidad autónoma"
+#usar la leyenda abajo en pequeño
+
+lineas.residuos.comunidad<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Tipo.de.residuo=="TOTAL RESIDUOS",], aes(x=Periodo, y=Total, color=Comunidades.y.Ciudades.Autónomas)) + geom_line() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Evolución de la cantidad de residuos en España por Comunidad Autónoma", x="Año", y="Toneladas")
+ggplotly(lineas.residuos.comunidad)
+
+```
+#mismo gráfico sin el outlier de "Total Nacional"
+```{r}
+lineas.residuos.comunidad<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Tipo.de.residuo=="TOTAL RESIDUOS",], aes(x=Periodo, y=Total, color=Comunidades.y.Ciudades.Autónomas)) + geom_line() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Evolución de la cantidad de residuos en España por Comunidad Autónoma", x="Año", y="Toneladas")
+ggplotly(lineas.residuos.comunidad)
+
+```
+
+#Distribución del total del residuos en España
+```{r}
+#Histogramas: Para cada tipo de residuo, muestra la distribución de la cantidad generada.
+#usar la base de datos residuos.comunidadesautonomas
+#usar la comunidad autónoma "Total Nacional"
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar tipo de residuo = "TOTAL RESIDUOS"
+#linea de tendencia
+#usar cantidad de residuo en el eje y
+#usar periodo en el eje x
+#usar el título "Distribución del Total de Residuos en España"
+#sin leyenda
+#añadir color [18] para diferenciar los tipos de residuos
+
+histograma.residuos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="TOTAL RESIDUOS",], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_histogram(stat="identity") + geom_smooth() + labs(title="Distribución del Total de Residuos en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos)
+
+```
+#Histograma para cada tipo de residuo
+```{r}
+#Histogramas: Para cada tipo de residuo, muestra la distribución de la cantidad generada.
+#usar la base de datos residuos.comunidadesautonomas
+#usar la comunidad autónoma "Total Nacional"
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar tipo de residuo = "10.1.1 Residuos domésticos y similares (domésticos y vías públicas)"
+#linea de tendencia
+#usar cantidad de residuo en el eje y
+#usar periodo en el eje x
+#usar el título "Distribución del Total de Residuos Domésticos y similares en España"
+#sin leyenda
+
+histograma.residuos.domesticos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="10.1.1 Residuos domésticos y similares (domésticos y vías públicas)" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#00b0f6") + geom_smooth() + labs(title="Distribución del Total de Residuos Domésticos y similares en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.domesticos)
+```
+
+```{r}
+histograma.residuos.domesticos.voluminosos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="10.1.2 Residuos domésticos voluminosos mezclados (enseres domésticos)" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#619cff") + geom_smooth() + labs(title="Distribución del Total de Residuos domésticos voluminosos mezclados (enseres domésticos) en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.domesticos.voluminosos)
+```
+
+```{r}
+histograma.residuos.metalicos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="06 Residuos metálicos" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#f8766d") + geom_smooth() + labs(title="Distribución del Total de Residuos Metálicos en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.metalicos)
+```
+
+```{r}
+histograma.residuos.vidrio<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="07.1 Residuos de vidrio" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#e58700") + geom_smooth() + labs(title="Distribución del Total de Residuos de Vidrio en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.vidrio)
+```
+
+```{r}
+histograma.residuos.papel.carton<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="07.2 Residuos de papel y cartón" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#c99800") + geom_smooth() + labs(title="Distribución del Total de Residuos de Papel y Cartón en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.papel.carton)
+```
+
+```{r}
+histograma.residuos.plasticos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="07.4 Residuos de plásticos" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#a3a500") + geom_smooth() + labs(title="Distribución del Total de Residuos de Plástico en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.plasticos)
+```
+
+```{r}
+histograma.residuos.madera<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="07.5 Residuos de Madera" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#6bb100") + geom_smooth() + labs(title="Distribución del Total de Residuos de Madera en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.madera)
+```
+
+```{r}
+histograma.residuos.textiles<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="07.6 Residuos textiles" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#00ba38") + geom_smooth() + labs(title="Distribución del Total de Residuos Textiles en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.textiles)
+```
+
+```{r}
+histograma.residuos.electronicos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="08.2 y 08.43 Equipos eléctricos desechados y Componentes de equipos eléctrónicos desechados" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#00bf7d") + geom_smooth() + labs(title="Distribución del Total de Residuos de Equipos Eléctricos en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.electronicos)
+```
+
+```{r}
+histograma.residuos.pilas<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="08.41 Residuos de pilas y acumuladores" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#00c0af") + geom_smooth() + labs(title="Distribución del Total de Residuos de Pilas y Acumuladores en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.pilas)
+```
+
+```{r}
+histograma.residuos.animales<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="09. Residuos animales y vegetales" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#00bcd8") + geom_smooth() + labs(title="Distribución del Total de Residuos Animales y Vegetales en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.animales)
+```
+
+```{r}
+histograma.residuos.envases<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="10.21 Envases mixtos y embalajes mezclados" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#b983ff") + geom_smooth() + labs(title="Distribución del Total de Residuos de Envases mixtos y Embalages mezclados en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.envases)
+```
+
+```{r}
+histograma.residuos.lodos<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="11 Lodos comunes (secos)" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#e76bf3") + geom_smooth() + labs(title="Distribución del Total de Residuos Lodos comunes (secos) en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.lodos)
+```
+
+```{r}
+histograma.residuos.minerales<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="12 Residuos minerales (incluye residuos de construcción y demolición)" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#fd61d1") + geom_smooth() + labs(title="Distribución del Total de Residuos Escombros en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.minerales)
+```
+
+```{r}
+histograma.residuos.otros<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="18 Otros" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#ff67a4") + geom_smooth() + labs(title="Distribución del Total de Otros Residuos en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.otros)
+```
+
+```{r}
+histograma.residuos.mezclados<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="TOTAL RESIDUOS MEZCLADOS" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#ee3d84") + geom_smooth() + labs(title="Distribución del Total de Residuos Mezclados recogidos en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.mezclados)
+```
+
+```{r}
+histograma.residuos.separados<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo=="TOTAL RESIDUOS DE RECOGIDA SEPARADA" ,], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) +  geom_histogram(stat="identity", fill = "#f4136d") + geom_smooth() + labs(title="Distribución del Total Residuos de Recogida Separada en España", x="Año", y="Toneladas") + theme(legend.position = "none")
+ggplotly(histograma.residuos.separados)
+```
+
+#Stacked bar chart por tipo de recogida de residuo
+
+###```{r}
+#grafico de barras apiladas para ver la cantidad de residuos por tipo de recogida y por año para Andalucía
+#usar la base de datos residuos.comunidadesautonomas
+#usar tipo de residuos "TOTAL RESIDUOS MEZCLADOS" y "TOTAL RESIDUOS DE RECOGIDA SEPARADA"
+#usar la cantidad de residuos en el eje y
+#usar el año en el eje x
+#añadir etiqueta de porcentaje en cada barra
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar el título "Cantidad de residuos por tipo de recogida en Andalucía"
+
+barras.residuos.recogida.andalucia<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="01 Andalucía" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity") + labs(title="Cantidad de residuos por tipo de recogida en Andalucía", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + geom_text(aes(label = scales::percent(Total/sum(Total[Tipo.de.residuo == fill & Periodo == x])), y = Total), position = position_stack(vjust = 0.5))
+ggplotly(barras.residuos.recogida.andalucia)
+###```
+
+
+```{r}
+
+barras.residuos.recogida.andalucia<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="01 Andalucía" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Andalucía", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+ggplotly(barras.residuos.recogida.andalucia)
+```
+
+
+
+
+```{r}
+barras.residuos.recogida.aragon<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="02 Aragón" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Aragón", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.aragon)
+```
+```{r}
+barras.residuos.recogida.asturias<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="03 Principado de Asturias" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en el Principado de Asturias", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.asturias)
+```
+
+```{r}
+barras.residuos.recogida.baleares<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="04 Illes Balears" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Islas Baleares", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.baleares)
+```
+
+```{r}
+barras.residuos.recogida.canarias<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="05 Canarias" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Islas Canarias", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.canarias)
+```
+
+```{r}
+barras.residuos.recogida.cantabria<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="06 Cantabria" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Cantabria", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.cantabria)
+```
+
+```{r}
+barras.residuos.recogida.castillaleon<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="07 Castilla y León" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Castilla y León", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.castillaleon)
+```
+
+```{r}
+barras.residuos.recogida.castillamancha<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="08 Castilla - La Mancha" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Castilla - La Mancha", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.castillamancha)
+```
+```{r}
+barras.residuos.recogida.cataluña<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="09 Cataluña" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Cataluña", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.cataluña)
+```
+
+```{r}
+barras.residuos.recogida.comunidadvalenciana<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="10 Comunitat Valenciana" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en la Comunidad Valenciana", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.comunidadvalenciana)
+```
+
+```{r}
+barras.residuos.recogida.extremadura<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="11 Extremadura" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Extremadura", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.extremadura)
+```
+
+```{r}
+barras.residuos.recogida.galicia<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="12 Galicia" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en Galicia", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.galicia)
+```
+```{r}
+barras.residuos.recogida.madrid<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="13 Comunidad de Madrid" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en la Comunidad de Madrid", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.madrid)
+```
+
+```{r}
+barras.residuos.recogida.murcia<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="14 Región de Murcia" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en la Región de Murcia", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.murcia)
+```
+
+```{r}
+barras.residuos.recogida.navarra<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="15 Comunidad Foral de Navarra" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en la Comunidad Foral de Navarra", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.navarra)
+```
+
+```{r}
+barras.residuos.recogida.paisvasco<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="16 País Vasco" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en el País Vasco", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.paisvasco)
+```
+
+```{r}
+barras.residuos.recogida.larioja<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas=="17 La Rioja" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Periodo, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")+ labs(title="Cantidad de residuos por tipo de recogida en La Rioja", x="Año", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida.larioja)
+```
+
+
+```{r}
+barras.residuos.recogida<-ggplot(data=residuos.comunidadesautonomas[residuos.comunidadesautonomas$Comunidades.y.Ciudades.Autónomas!="Total Nacional" & residuos.comunidadesautonomas$Tipo.de.residuo %in% c("TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA"),], aes(x=Comunidades.y.Ciudades.Autónomas, y=Total, fill=Tipo.de.residuo)) + geom_bar(stat="identity")  + facet_wrap(~ Periodo) + labs(title="Cantidad de residuos por tipo de recogida en España", x="Comunidad Autónoma", y="Toneladas") + theme(legend.position = "bottom", legend.text = element_text(size = 6))
+
+ggplotly(barras.residuos.recogida)
+```
+
+###```{r}
+#Agrupa comunidades autónomas similares en función de sus patrones de residuos
+#usar la base de datos residuos.comunidadesautonomas
+#usar análisis de cluster k-means para agrupar las comunidades autónomas
+#usar la cantidad de residuos por tipo de residuo, año y comunidad autónoma
+
+#no usar la comunidad autónoma "Total Nacional"
+
+#no usar el tipo de residuo "TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS" y "TOTAL RESIDUOS DE RECOGIDA SEPARADA"
+
+#usar el título "Agrupación de comunidades autónomas en función de sus patrones de residuos"
+
+# Filter and select relevant data
+residuos.comunidadesautonomas.cluster <- residuos.comunidadesautonomas %>%
+  filter(Comunidades.y.Ciudades.Autónomas != "Total Nacional" & !Tipo.de.residuo %in% c("TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA")) %>%
+  select(-c(Comunidades.y.Ciudades.Autónomas, Periodo, Tipo.de.residuo))
+
+
+# Standardize numerical variables
+residuos.comunidadesautonomas.cluster <- scale(residuos.comunidadesautonomas.cluster)
+
+
+# Perform k-means clustering with 3 clusters
+kmeans_results <- kmeans(residuos.comunidadesautonomas.cluster, centers = 3)
+
+
+# Add cluster assignment to the original data
+#residuos.comunidadesautonomas$cluster <- as.factor(kmeans_results$cluster)
+
+
+# Plot the clusters
+cluster_plot <- ggplot(residuos.comunidadesautonomas, aes(x = Total, y = cluster, color = cluster)) +
+  geom_point() +
+  labs(title = "Agrupación de comunidades autónomas en función de sus patrones de residuos", x = "Toneladas", y = "Cluster") +
+  theme(legend.position = "none")
+
+ggplotly(cluster_plot)
+
+###```
+
+
+
+
+###```{r}
+#Agrupa comunidades autónomas similares en función de sus patrones de residuos
+#usar la base de datos residuos.comunidadesautonomas
+#usar análisis de cluster k-means para agrupar las comunidades autónomas
+#usar la cantidad de residuos por tipo de residuo, año y comunidad autónoma
+#no usar la comunidad autónoma "Total Nacional"
+#no usar el tipo de residuo "TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS" y "TOTAL RESIDUOS DE RECOGIDA SEPARADA"
+#usar el título "Agrupación de comunidades autónomas en función de sus patrones de residuos"
+
+
+# Filter and select relevant data
+residuos.comunidadesautonomas.cluster <- residuos.comunidadesautonomas %>%
+  filter(Comunidades.y.Ciudades.Autónomas != "Total Nacional" & !Tipo.de.residuo %in% c("TOTAL RESIDUOS", "TOTAL RESIDUOS MEZCLADOS", "TOTAL RESIDUOS DE RECOGIDA SEPARADA")) %>% 
+  select(-c(Comunidades.y.Ciudades.Autónomas, Periodo, Tipo.de.residuo))
+
+
+# Standardize numerical variables
+residuos.comunidadesautonomas.cluster <- scale(residuos.comunidadesautonomas.cluster)
+
+
+# Perform k-means clustering with 3 clusters
+kmeans_results <- kmeans(residuos.comunidadesautonomas.cluster, centers = 3)
+
+
+# Add cluster assignment to the original data
+#residuos.comunidadesautonomas$cluster <- as.factor(kmeans_results$cluster)
+
+
+# Plot the clusters
+cluster_plot <- ggplot(residuos.comunidadesautonomas, aes(x = Total, y = cluster, color = cluster)) +
+  geom_point() +
+  labs(title = "Agrupación de comunidades autónomas en función de sus patrones de residuos", x = "Toneladas", y = "Cluster") +
+  theme(legend.position = "none")
+
+ggplotly(cluster_plot)
+
+
+#```
+
+
+```{r}
+#resumen de los datos
+summary(residuos.madrid)
+
+```
+
+```{r}
+str(residuos.madrid)
+```
+```{r}
+#cambiar nombre de columna "Nombre Distrito" a "Nombre.Distrito"
+residuos.madrid <- residuos.madrid %>%
+  rename(Nombre.Distrito = `Nombre Distrito`)
+
+
+#ordenar meses cronológicamente
+residuos.madrid$Mes <- factor(residuos.madrid$Mes, levels = c("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"))
+
+```
+
+```{r}
+
+head(residuos.madrid)
+```
+
+
+
+
+```{r}
+#sumar todas las toneladas por residuo igual en Madrid por año
+
+residuos.tipo.madrid.anual <- residuos.madrid %>%
+  group_by(Año, Residuo) %>%
+  summarise(Toneladas = sum(Toneladas))
+residuos.tipo.madrid.anual
+```
+
+
+
+```{r}
+#Histogramas y estadísticas descriptivas de las toneladas de residuos en Madrid
+#usar la base de datos residuos.tipo.madrid
+#usar la cantidad de residuos en el eje y
+#usar el año en el eje x
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar el título "Distribución de la cantidad de residuos en Madrid"
+
+
+histograma.residuos.madrid<-ggplot(data=residuos.tipo.madrid.anual, aes(x=Año, y=Toneladas, fill=Residuo)) + geom_histogram(stat="identity") + labs(title="Distribución de la cantidad de residuos en Madrid", x="Año", y="Toneladas")
+ggplotly(histograma.residuos.madrid)
+```
+```{r}
+#añadir un total de residuos por año por distrito
+
+residuos.madrid.total.año <- residuos.madrid %>%
+  group_by(Año, Nombre.Distrito) %>%
+  summarise(Toneladas = sum(Toneladas))
+residuos.madrid.total.año
+```
+
+```{r}
+#grafico de lineas de total de residuos por año por Nombre Distrito en Madrid
+#una linea por distrito
+#sumar el total de residuos por distrito por año
+#usar la base de datos residuos.madrid
+#usar el color de relleno para diferenciar los distritos
+#usar el título "Evolución de la cantidad de residuos en Madrid por distrito"
+#usar la leyenda abajo en pequeño
+
+
+lineas.residuos.madrid.anual<-ggplot(data=residuos.madrid.total.año, aes(x=Año, y=Toneladas, color=Nombre.Distrito)) + geom_line() + theme(legend.position = "bottom", legend.text = element_text(size = 6)) + labs(title="Evolución de la cantidad de residuos anual en Madrid por distrito", x="Año", y="Toneladas")
+ggplotly(lineas.residuos.madrid.anual)
+
+```
+
+
+```{r}
+#añadir un total de residuos por mes por distrito
+#añadir el año al mes dentro de la función
+#Mes no puede ser <NA>
+
+residuos.madrid.total.mes <- residuos.madrid %>%
+  group_by(Año, Mes, Nombre.Distrito) %>%
+  summarise(Toneladas = sum(Toneladas))
+residuos.madrid.total.mes
+```
+
+```{r}
+#grafico de lineas de total de residuos por mes en Centro en Madrid para analizar la evolución de la cantidad de residuos 
+#sumar el total de residuos en "CENTRO" por mes
+#usar el año 2010
+#usar la base de datos residuos.madrid.total.mes
+#usar el título "Evolución de la cantidad de residuos mensual en Madrid por distrito"
+#usar la leyenda abajo en pequeño
+
+
+lineas.residuos.madrid.centro<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="CENTRO",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito del Centro por año", x="Mes", y="Toneladas")
+ggplotly(lineas.residuos.madrid.centro)
+
+
+```
+```{r}
+lineas.residuos.madrid.arganzuela<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="ARGANZUELA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Arganzuela por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.arganzuela)
+```
+
+```{r}
+lineas.residuos.madrid.barajas<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="BARAJAS",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Barajas por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.barajas)
+```
+```{r}
+lineas.residuos.madrid.carabanchel<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="CARABANCHEL",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Carabanchel por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.carabanchel)
+```
+```{r}
+lineas.residuos.madrid.chamartin<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="CHAMARTÍN",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Chamartín por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.chamartin)
+```
+```{r}
+lineas.residuos.madrid.chamberi<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="CHAMBERÍ",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Chamberí por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.chamberi)
+```
+```{r}
+lineas.residuos.madrid.ciudadlineal<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="CIUDAD LINEAL",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Ciudad Lineal por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.ciudadlineal)
+```
+```{r}
+lineas.residuos.madrid.fuencarral<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="FUENCARRAL",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Fuencarral-El Pardo por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.fuencarral)
+```
+```{r}
+lineas.residuos.madrid.hortaleza<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="HORTALEZA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Hortaleza por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.hortaleza)
+```
+```{r}
+lineas.residuos.madrid.latina<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="LATINA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Latina por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.latina)
+```
+```{r}
+lineas.residuos.madrid.moncloa<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="MONCLOA - ARAVACA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Moncloa-Aravaca por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.moncloa)
+```
+```{r}
+lineas.residuos.madrid.moratalaz<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="MORATALAZ",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Moratalaz por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.moratalaz)
+```
+```{r}
+lineas.residuos.madrid.puentevallecas<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="PUENTE DE VALLECAS",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Puente de Vallecas por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.puentevallecas)
+```
+```{r}
+lineas.residuos.madrid.retiro<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="RETIRO",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Retiro por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.retiro)
+```
+```{r}
+lineas.residuos.madrid.salamanca<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="SALAMANCA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Salamanca por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.salamanca)
+```
+```{r}
+lineas.residuos.madrid.sanblas<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="SAN BLAS-CANILLEJAS",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de San Blas-Canillejas por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.sanblas)
+```
+```{r}
+lineas.residuos.madrid.tetuan<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="TETUAN",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Tetuán por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.tetuan)
+```
+```{r}
+lineas.residuos.madrid.usera<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="USERA",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Usera por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.usera)
+```
+```{r}
+lineas.residuos.madrid.vicalvaro<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="VICÁLVARO",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Vicálvaro por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.vicalvaro)
+```
+```{r}
+lineas.residuos.madrid.villa<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="VILLA DE VALLECAS",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Villa de Vallecas por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.villa)
+```
+```{r}
+lineas.residuos.madrid.villaverde<-ggplot(data=residuos.madrid.total.mes[residuos.madrid.total.mes$Nombre.Distrito=="VILLAVERDE",], aes(x=Mes, y=Toneladas, color= Año, group = Año)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en el distrito de Villaverde por año", x="Mes", y="Toneladas")
+
+ggplotly(lineas.residuos.madrid.villaverde)
+```
+
+
+```{r}
+#grafico de lineas por tipo de residuo para analizar la evolución de la cantidad de residuos en Madrid
+#usar el año 2017
+#separar por tipo de residuo
+#separar por mes
+#sumar residuo por tipo de residuo, mes, y distrito
+residuos.madrid.tipo.mes <- residuos.madrid %>% arrange(Mes)
+residuos.madrid.tipo.mes <- residuos.madrid %>%
+  group_by(Año, Mes, Residuo) %>%
+  summarise(Toneladas = sum(Toneladas))
+residuos.madrid.tipo.mes
+
+```
+
+
+
+
+
+```{r}
+#grafico de lineas por tipo de residuo para analizar la evolución de la cantidad de residuos en Madrid
+#usar el año 2017
+#separar por tipo de residuo
+#separar por mes
+
+
+lineas.residuos.madrid.tipo.mes.2017<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2017,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2017", x="Mes", y="Toneladas") + theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1)) 
+ggplotly(lineas.residuos.madrid.tipo.mes.2017)
+```
+```{r}
+lineas.residuos.madrid.tipo.mes.2018<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2018,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2018", x="Mes", y="Toneladas")+ theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1)) 
+ggplotly(lineas.residuos.madrid.tipo.mes.2018)
+
+```
+
+```{r}
+lineas.residuos.madrid.tipo.mes.2019<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2019,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2019", x="Mes", y="Toneladas") + theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplotly(lineas.residuos.madrid.tipo.mes.2019)
+```
+
+```{r}
+lineas.residuos.madrid.tipo.mes.2020<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2020,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2020", x="Mes", y="Toneladas")+ theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplotly(lineas.residuos.madrid.tipo.mes.2020)
+```
+
+```{r}
+lineas.residuos.madrid.tipo.mes.2021<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2021,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2021", x="Mes", y="Toneladas")+ theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplotly(lineas.residuos.madrid.tipo.mes.2021)
+```
+
+```{r}
+lineas.residuos.madrid.tipo.mes.2022<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2022,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2021", x="Mes", y="Toneladas")+ theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplotly(lineas.residuos.madrid.tipo.mes.2022)
+```
+```{r}
+#hacer la leyenda más pequeña
+lineas.residuos.madrid.tipo.mes.2023<-ggplot(data=residuos.madrid.tipo.mes[residuos.madrid.tipo.mes$Año==2023,], aes(x=Mes, y=Toneladas, color=Residuo, group = Residuo)) + geom_line() + labs(title="Evolución de la cantidad de residuos mensual en Madrid por tipo de residuo en 2021", x="Mes", y="Toneladas")+ theme( title = element_text(size = 10),legend.title = element_text(size = 10),legend.text = element_text(size = 8), axis.title.x = element_text(angle = 90), axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplotly(lineas.residuos.madrid.tipo.mes.2023)
+```
+
+
+
+
+```{r}
+#grafico de correlacion entre las variables
+#usar la base de datos residuos.madrid
+#usar la cantidad de residuos en el eje y
+#usar el año en el eje x
+#usar el color de relleno para diferenciar los tipos de residuos
+#usar el título "Correlación entre las variables de residuos en Madrid"
+
+
+correlacion.residuos.madrid<-ggplot(data=residuos.madrid, aes(x=Año, y=Toneladas, fill=Residuo)) + geom_point() + labs(title="Correlación entre las variables de residuos en Madrid", x="Año", y="Toneladas")
+
+ggplotly(correlacion.residuos.madrid)
+
+```
+
+
+```{r}
+
+
+```
+
+
+
+
+
