@@ -31,7 +31,7 @@ library(scales)
 
 
 ```{r}
-residuos.madrid<- read_excel("C:/Users/isalc/OneDrive - Fundación Universitaria San Pablo CEU/Documentos/TFG/Modelo_residuos_2017-2023_recogida.xlsx")
+residuos.madrid<- read_excel("Modelo_residuos_2017-2023_recogida.xlsx")
 
 residuos.comunidadesautonomas<- read.csv("Cantidad de residuos urbanos recogidos clasificados por tipo de residuo, periodo y comunidades autónomas.csv", sep = ";")
 ```
